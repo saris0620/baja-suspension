@@ -29,4 +29,5 @@ You will only need to do the set up steps once. After that, to run it, you can:
 1. Type the following onto terminal
     ```python
     streamlit run interface.py
-    ``` 
+    ```
+**Temporary while deploying is figured out**
