@@ -112,15 +112,19 @@ class DoubleAArm(Hardpoints):
     s_ib: np.ndarray        # shock inboard
     s_ob: np.ndarray        # shock outboard
 
-    # pivot points
-    piv_ib:  np.ndarray      # in-board pivot center (cv)
-    piv_ob:  np.ndarray      # out-board pivot center (cv)
-
     # wheel points
     wc: np.ndarray          # wheel center point
 
+    # pivot points
+    piv_ib:  np.ndarray | None = None      # in-board pivot center (cv)
+    piv_ob:  np.ndarray | None = None       # out-board pivot center (cv)
+
     @classmethod
     def from_data(cls, data: dict) -> "DoubleAArm":
+
+        piv_ib = np.array(data["pivot_inboard"]) if "pivot_inboard" in data else None
+        piv_ob = np.array(data["pivot_outboard"]) if "pivot_outboard" in data else None
+
         return DoubleAArm(
             uf   =np.array(data['upper_a_arm_front']),
             ur   =np.array(data['upper_a_arm_rear']),
@@ -133,23 +137,27 @@ class DoubleAArm(Hardpoints):
             s_loc=str(data['shock_location']),
             s_ib =np.array(data['shock_inboard']),
             s_ob =np.array(data['shock_outboard']),
-            piv_ib=np.array(data['pivot_inboard']),
-            piv_ob=np.array(data['pivot_outboard']),
             wc   =np.array(data['wheel_center']),
+            piv_ib=piv_ib,
+            piv_ob=piv_ob,
         )
 
     @classmethod
     def link_lengths(cls, hp: "DoubleAArm") -> Dict[str, float]:
-        return {
+        lengths = {
             "upper_front": float(np.linalg.norm(hp.ubj - hp.uf)),
             "upper_rear": float(np.linalg.norm(hp.ubj - hp.ur)),
             "lower_front": float(np.linalg.norm(hp.lbj - hp.lf)),
             "lower_rear": float(np.linalg.norm(hp.lbj - hp.lr)),
             "tie_rod": float(np.linalg.norm(hp.tr_ib - hp.tr_ob)),
             "shock_static": float(np.linalg.norm(hp.s_ib - hp.s_ob)),
-            "axle_ib_ob_static": float(np.linalg.norm(hp.piv_ib - hp.piv_ob)),
-            "axle_ob_wc": float(np.linalg.norm(hp.piv_ob - hp.wc)),
         }
+
+        if hp.piv_ib is not None and hp.piv_ob is not None:
+            lengths["axle_ib_ob_static"] = float(np.linalg.norm(hp.piv_ib - hp.piv_ob))
+            lengths["axle_ob_wc"] = float(np.linalg.norm(hp.piv_ob - hp.wc))
+
+        return lengths
 
 @dataclass
 class SemiTrailingLink(Hardpoints):
@@ -167,15 +175,18 @@ class SemiTrailingLink(Hardpoints):
     s_ib: np.ndarray         # shock inboard
     s_ob: np.ndarray         # shock outboard
 
-    # pivot points
-    piv_ib:  np.ndarray      # in-board pivot center (cv)
-    piv_ob:  np.ndarray      # out-board pivot center (cv)
-
     # wheel points
     wc: np.ndarray           # wheel center point
 
+    # pivot points
+    piv_ib:  np.ndarray | None = None      # in-board pivot center (cv)
+    piv_ob:  np.ndarray | None = None       # out-board pivot center (cv)
+
     @classmethod
     def from_data(cls, data: dict) -> "SemiTrailingLink":
+        piv_ib = np.array(data["pivot_inboard"]) if "pivot_inboard" in data else None
+        piv_ob = np.array(data["pivot_outboard"]) if "pivot_outboard" in data else None
+
         return cls(
             tl_f  =np.array(data['trailing_link_front']),
             ucl_ib=np.array(data['upper_camber_link_inboard']),
@@ -184,9 +195,9 @@ class SemiTrailingLink(Hardpoints):
             lcl_ob=np.array(data['lower_camber_link_outboard']),
             s_ib  =np.array(data['shock_inboard']),
             s_ob  =np.array(data['shock_outboard']),
-            piv_ib=np.array(data['pivot_inboard']),
-            piv_ob=np.array(data['pivot_outboard']),
             wc    =np.array(data['wheel_center']),
+            piv_ib=piv_ib,
+            piv_ob=piv_ob,
         )
 
     @classmethod

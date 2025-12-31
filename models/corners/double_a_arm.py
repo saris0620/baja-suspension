@@ -29,14 +29,24 @@ class DoubleAArmNumeric:
             print("Assuming Lower A Arm mounted shock point...")
 
         # passive axle
-        self.axle_static_len = np.linalg.norm(hp.piv_ob - hp.piv_ib)
-        self.piv_ob_loc = hp.piv_ob - hp.lbj
+        if hp.piv_ib is not None and hp.piv_ob is not None:
+            self.axle_static_len = float(np.linalg.norm(hp.piv_ob - hp.piv_ib))
+            self.has_axle = True
+        else:
+            self.axle_static_len = None
+            self.has_axle = False
 
-        self.axle = Axle(
-            joint1=PlungingCVJoint(max_angle=30, plunge_limit=30.0), # Inboard slider
-            joint2=CVJoint(max_angle=30), # Outboard fixed
-            length=self.axle_static_len
-        )
+        if self.has_axle:
+            self.piv_ob_loc = hp.piv_ob - hp.lbj
+
+            self.axle = Axle(
+                joint1=PlungingCVJoint(max_angle=30, plunge_limit=30.0),
+                joint2=CVJoint(max_angle=30),
+                length=self.axle_static_len
+            )
+        else:
+            self.piv_ob_loc = None
+            self.axle = None
 
     def reset(self):
         # reset the prev x to the default guess
@@ -131,13 +141,19 @@ class DoubleAArmNumeric:
         sha = s_rel_pt_loc + sh_vec
 
         # axle calcs
-        piv_ob = world(self.piv_ob_loc)
-        n_ib_dir = 1.0 if hp.piv_ib[1] > 0 else -1.0
-        n_ib = np.array([0.0, n_ib_dir, 0.0])
-        n_ob_dir = -1.0 if hp.wc[1] > 0 else 1.0
-        n_ob = Rw @ np.array([0.0, n_ob_dir, 0.0])
-        axle_state = self.axle.get_state(hp.piv_ib, piv_ob, n_ib, n_ob)
+        if self.has_axle:
+            piv_ob = world(self.piv_ob_loc)
 
+            n_ib_dir = 1.0 if hp.piv_ib[1] > 0 else -1.0
+            n_ib = np.array([0.0, n_ib_dir, 0.0])
+
+            n_ob_dir = -1.0 if hp.wc[1] > 0 else 1.0
+            n_ob = Rw @ np.array([0.0, n_ob_dir, 0.0])
+
+            axle_state = self.axle.get_state(hp.piv_ib, piv_ob, n_ib, n_ob)
+        else:
+            axle_state = None
+            
         step = {
             "lbj": lbj,
             "ubj": ubj,

@@ -121,13 +121,10 @@ class PlotterBase:
             ax.set_title(title)
         ax.grid(True, linestyle=":", linewidth=0.5)
 
-        plt.ion()
-        plt.show(block=False)
         return fig, ax
 
-    def display(self):
-        plt.ioff()
-        plt.show()
+    def get_figure(self):
+        return self.fig
 
     def update(self, *args, **kwargs):
         raise NotImplementedError
@@ -187,9 +184,6 @@ class DoubleAArmPlotter(PlotterBase):
         self.wheel_cyl_front = self.ax.plot([], [], [], c="0.5", lw=1.5)[0]
         self.wheel_cyl_back  = self.ax.plot([], [], [], c="0.5", lw=1.5)[0]
 
-        plt.ion()
-        plt.show(block=False)
-
     def update(self, step: Dict[str, np.ndarray]):
         hp = self.hp
         lbj = step["lbj"]
@@ -248,9 +242,6 @@ class DoubleAArmPlotter(PlotterBase):
         path = np.asarray(self._path)
         self.path_line.set_data(path[:, 0], path[:, 1])
         self.path_line.set_3d_properties(path[:, 2])
-
-        plt.draw()
-        plt.pause(1e-9)
 
 class SemiTrailingLinkPlotter(PlotterBase):
     def __init__(self, hp: SemiTrailingLink):
@@ -378,8 +369,6 @@ class SemiTrailingLinkPlotter(PlotterBase):
         self.path_line.set_data(path[:, 0], path[:, 1])
         self.path_line.set_3d_properties(path[:, 2])
 
-        plt.draw()
-        plt.pause(1e-9)
 
 class CharacteristicPlotter(PlotterBase):
     def __init__(self, char: SCALAR_CHARACTERISTIC):
@@ -405,13 +394,14 @@ class CharacteristicPlotter(PlotterBase):
     def update(self, attitude: Dict[str, float]):
         """Append the current value (deg) taken from *attitude* dict."""
         value = attitude[self.char.name.lower()]
-        self._xs.append(len(self._ys))
+        travel = attitude["travel_mm"]
+
+        self._xs.append(travel)
         self._ys.append(value)
 
         self._line.set_data(self._xs, self._ys)
         self.ax.relim(); self.ax.autoscale_view()
 
-        plt.draw()
 
 class PointPlotter(PlotterBase):
     def __init__(self, point_key: str, axis: POINT_AXIS):
@@ -433,14 +423,14 @@ class PointPlotter(PlotterBase):
             raise KeyError(f"PointPlotter: '{self.point_key}' not present in step.")
 
         value = float(step[self.point_key][self.coord_idx])
+        travel = step["travel_mm"]
 
-        self._xs.append(len(self._ys))
+        self._xs.append(travel)
         self._ys.append(value)
 
         self._line.set_data(self._xs, self._ys)
         self.ax.relim()
         self.ax.autoscale_view()
-        plt.draw()
 
 class AxleCharacteristicsPlotter(PlotterBase):
     def __init__(self, char: AXLE_CHARACTERISTIC):
@@ -467,11 +457,12 @@ class AxleCharacteristicsPlotter(PlotterBase):
         Extract axle data from the step dictionary.
         Requires step['axle_data'] to be present.
         """
-        if "axle_data" not in step:
+        data = step.get("axle_data")
+        if data is None:
             return 
-            
-        data = step["axle_data"]
         
+        travel = step["travel_mm"]
+
         val = 0.0
         if self.char == AXLE_CHARACTERISTIC.PLUNGE:
             val = data["plunge_mm"]
@@ -480,10 +471,9 @@ class AxleCharacteristicsPlotter(PlotterBase):
         elif self.char == AXLE_CHARACTERISTIC.ANGLE_OB:
             val = data["angle_ob_deg"]
 
-        self._xs.append(len(self._ys))
+        self._xs.append(travel)
         self._ys.append(val)
 
         self._line.set_data(self._xs, self._ys)
         self.ax.relim()
         self.ax.autoscale_view()
-        plt.draw()

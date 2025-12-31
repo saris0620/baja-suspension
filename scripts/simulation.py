@@ -34,6 +34,8 @@ class WheelAttitudeSimulation(Simulation):
             for travel, steer in zip(travel_values, steer_values):
                 step = solver.solve(travel_mm=travel, steer_mm=steer)
                 if step:
+                    step["travel_mm"] = float(travel)   # ✅ FIX
+                    step["steer_mm"] = float(steer)     # optional but useful
                     steps.append(step)
         else:
             travel_values = (
@@ -43,6 +45,7 @@ class WheelAttitudeSimulation(Simulation):
             for travel in travel_values:
                 step = solver.solve(travel_mm=travel)
                 if step:
+                    step["travel_mm"] = float(travel)
                     steps.append(step)
 
         return steps

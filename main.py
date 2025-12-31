@@ -2,6 +2,7 @@
 import time
 from typing import Dict, Tuple, List
 import yaml
+import matplotlib.pyplot as plt
 
 # third party
 import numpy as np
@@ -31,9 +32,7 @@ CORNER_MAP = {
     ("right", "rear"):  "rear_right",
 }
 
-if __name__ == "__main__":
-    with open("sim_config.yml", "r") as file:
-        config = yaml.safe_load(file)
+def run_simulation(config: Dict) -> Dict[str, object]:
 
     hp_file = f"hardpoints/{config['HARDPOINTS']}.yml"
     with open(hp_file, 'r') as file:
@@ -47,7 +46,6 @@ if __name__ == "__main__":
     corner = getattr(vehicle, CORNER_MAP[(side, half)])
 
     # Pick simulation
-    simulation: Simulation
     if config['SIMULATION'] == 'wheel_attitude':
         simulation = WheelAttitudeSimulation(vehicle, config)
         steps = simulation.run(corner=corner)
@@ -80,20 +78,25 @@ if __name__ == "__main__":
             plots.append(SemiTrailingLinkPlotter(hp))
 
     # Update 2D plots across steps
-    if steps:
-        for st in steps:
-            att = wheel_attitude(st)
-            
-            for plot in plots:
-                if isinstance(plot, CharacteristicPlotter):
-                    plot.update(att)
-                elif isinstance(plot, AxleCharacteristicsPlotter):
-                    plot.update(st)
-                
-        if config["PLOTS"]["3D"] and plots:
-            if isinstance(plots[-1], (DoubleAArmPlotter, SemiTrailingLinkPlotter)):
-                plots[-1].update(steps[-1])
+    for step in steps:
+        att = wheel_attitude(step)
+        att["travel_mm"] = step["travel_mm"]   # ✅ REQUIRED
 
-    # Display all plots
-    for plot in plots:
-        plot.display()
+        for plot in plots:
+            if isinstance(plot, CharacteristicPlotter):
+                plot.update(att)
+            else:
+                plot.update(step)
+
+    return {
+        "steps": steps,
+        "figures": [p.get_figure() for p in plots],
+    }
+
+# CLI - optional
+if __name__ == "__main__":
+    with open("sim_config.yml", "r") as file:
+        config = yaml.safe_load(file)
+
+    result = run_simulation(config)
+    plt.show()
